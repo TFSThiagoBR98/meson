@@ -84,6 +84,7 @@ import collections
 import typing as T
 import textwrap
 import importlib
+import sys
 
 if T.TYPE_CHECKING:
     import argparse
@@ -562,7 +563,13 @@ class Interpreter(InterpreterBase, HoldableObject):
         if modname in self.modules:
             return self.modules[modname]
         try:
-            module = importlib.import_module('mesonbuild.modules.' + modname)
+            if (modname.startswith('.')): # import module from source dir
+                basePath = str(Path(os.path.join(self.environment.get_source_dir(), "meson_modules")).absolute())
+                if basePath not in sys.path:
+                    sys.path.append(basePath)
+                module = importlib.import_module(modname[1:])
+            else:
+                module = importlib.import_module('mesonbuild.modules.' + modname)
         except ImportError:
             if required:
                 raise InvalidArguments(f'Module "{modname}" does not exist')
